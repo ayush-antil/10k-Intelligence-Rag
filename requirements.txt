@@ -1,0 +1,14 @@
+# CPU-only PyTorch: much smaller/faster to install on Streamlit Cloud than the default GPU build
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
+
+streamlit
+chromadb
+sentence-transformers
+google-generativeai
+python-dotenv
+
+# IMPORTANT: after this works locally, run `pip freeze | findstr /i "streamlit chromadb sentence-transformers google-generativeai torch python-dotenv"`
+# (Mac/Linux: `pip freeze | grep -iE "streamlit|chromadb|sentence-transformers|google-generativeai|torch|python-dotenv"`)
+# and pin those exact versions here (e.g. chromadb==x.y.z). chroma_db/ must be read by the
+# same ChromaDB version that built it.

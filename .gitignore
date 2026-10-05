@@ -1,0 +1,15 @@
+# secrets -- NEVER commit these
+.env
+.streamlit/secrets.toml
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# source PDFs are only needed to rebuild the index (01_build_rag.py), not to run the app
+data/*.pdf
+
+# NOTE: do NOT ignore chroma_db/ or assets/ -- the deployed app needs both.
+.ipynb_checkpoints/
