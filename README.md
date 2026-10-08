@@ -17,7 +17,8 @@ per-company semantic retrieval → Gemini answer grounded only in the retrieved 
 ## Run locally
 ```bash
 pip install -r requirements.txt
-cp .streamlit/secrets.toml.example .streamlit/secrets.toml   # https://10k-intelligence.streamlit.app/
+cp .streamlit/secrets.toml.example .streamlit/secrets.toml
+https://10k-intelligence.streamlit.app/
 streamlit run app.py
 ```
 
