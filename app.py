@@ -24,10 +24,6 @@ from sentence_transformers import SentenceTransformer
 import google.generativeai as genai
 from google.api_core.exceptions import ResourceExhausted
 
-
-# =========================================================
-# ICON ASSETS
-# =========================================================
 ASSETS_DIR = Path(__file__).parent / "assets"
 
 ICON_FILES = {
@@ -38,10 +34,9 @@ ICON_FILES = {
     "JPMorgan": "jpmorgan.png",
 }
 
-
 @lru_cache(maxsize=None)
 def icon_uri(name: str) -> str:
-    """Base64 data URI for an icon in assets/. Empty string if the file is missing."""
+
     filename = ICON_FILES.get(name, "")
     if not filename:
         return ""
@@ -53,9 +48,8 @@ def icon_uri(name: str) -> str:
     encoded = base64.b64encode(path.read_bytes()).decode()
     return f"data:image/png;base64,{encoded}"
 
-
 def icon_img(name: str, css_class: str = "", fallback: str = "") -> str:
-    """<img> tag for an icon, falling back to an emoji when the file is missing."""
+
     uri = icon_uri(name)
     if not uri:
         return fallback
@@ -63,13 +57,8 @@ def icon_img(name: str, css_class: str = "", fallback: str = "") -> str:
     cls = f' class="{css_class}"' if css_class else ""
     return f'<img src="{uri}"{cls} alt="{name}">'
 
-
 BRAND_ICON_PATH = ASSETS_DIR / ICON_FILES["brand"]
 
-
-# =========================================================
-# PAGE CONFIG
-# =========================================================
 st.set_page_config(
     page_title="10-K Intelligence",
     page_icon=str(BRAND_ICON_PATH) if BRAND_ICON_PATH.is_file() else "📊",
@@ -77,15 +66,8 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-
-# =========================================================
-# ENVIRONMENT
-# =========================================================
 load_dotenv()
 
-# Locally this comes from .env via load_dotenv() above.
-# On Streamlit Cloud, .env doesn't exist -- the key lives in
-# st.secrets instead (Settings -> Secrets in the app dashboard).
 api_key = os.getenv("GEMINI_API_KEY")
 if not api_key:
     try:
@@ -102,10 +84,6 @@ if not api_key:
 
 genai.configure(api_key=api_key)
 
-
-# =========================================================
-# CUSTOM CSS
-# =========================================================
 st.markdown(
     """
     <style>
@@ -137,10 +115,8 @@ st.markdown(
         color: var(--text);
     }
 
-    /* Hide Streamlit chrome. We deliberately do NOT hide [data-testid="stToolbar"]:
-       in recent Streamlit versions it also holds the "open sidebar" button, and
-       hiding it leaves visitors with no way to reopen a collapsed sidebar.
-       (.streamlit/config.toml -> toolbarMode = "minimal" already trims the toolbar.) */
+    /* Hide the default menu, footer and deploy button. The toolbar is left alone
+       because it contains the button that reopens a collapsed sidebar. */
     #MainMenu, footer, [data-testid="stDecoration"],
     [data-testid="stDeployButton"], .stAppDeployButton {
         visibility: hidden;
@@ -150,7 +126,7 @@ st.markdown(
         background: transparent;
     }
 
-    /* Always keep the "reopen sidebar" button visible (name differs by Streamlit version) */
+    /* Keep the reopen-sidebar button visible; its test id differs between Streamlit versions */
     [data-testid="stExpandSidebarButton"],
     [data-testid="stSidebarCollapsedControl"],
     [data-testid="collapsedControl"] {
@@ -745,10 +721,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-
-# =========================================================
-# COMPANY LOGOS ON THE SIDEBAR CHECKBOXES
-# =========================================================
 CHECKBOX_ICON_KEYS = {
     "amazon_filter": "Amazon",
     "nvidia_filter": "NVIDIA",
@@ -786,12 +758,7 @@ if _checkbox_rules:
         unsafe_allow_html=True,
     )
 
-
-# =========================================================
-# CACHED RAG RESOURCES
-# =========================================================
 CHROMA_PATH = str(Path(__file__).parent / "chroma_db")
-
 
 @st.cache_resource
 def load_resources():
@@ -804,13 +771,8 @@ def load_resources():
     llm = genai.GenerativeModel("gemini-3.5-flash-lite")
     return embedder, collection, llm
 
-
 embedder, collection, llm = load_resources()
 
-
-# =========================================================
-# SESSION STATE
-# =========================================================
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -822,19 +784,15 @@ if "question_count" not in st.session_state:
 
 MAX_QUESTIONS_PER_SESSION = 10
 
-# Gemini's free tier is shared by EVERY visitor, so besides the per-session
-# cap above we throttle across all sessions. Stay under the API's per-minute limit.
 GLOBAL_MAX_CALLS = 12
 GLOBAL_WINDOW_SECONDS = 60
-
 
 @st.cache_resource
 def _rate_limiter():
     return {"lock": threading.Lock(), "calls": []}
 
-
 def global_rate_ok() -> bool:
-    """True if a Gemini call is allowed right now (and reserves a slot for it)."""
+
     limiter = _rate_limiter()
     now = time.time()
     with limiter["lock"]:
@@ -846,10 +804,6 @@ def global_rate_ok() -> bool:
         limiter["calls"].append(now)
         return True
 
-
-# =========================================================
-# COMPANY FILTER HELPERS
-# =========================================================
 COMPANY_SOURCE_KEYWORDS = {
     "Amazon": ["amazon"],
     "NVIDIA": ["nvidia", "nvda"],
@@ -857,12 +811,8 @@ COMPANY_SOURCE_KEYWORDS = {
     "JPMorgan": ["jpmorgan", "jp morgan", "jpm", "chase"],
 }
 
-
 def source_matches_selected_company(source, selected_companies):
-    """
-    Returns True when a ChromaDB source name belongs to one
-    of the currently selected companies.
-    """
+
     source_text = str(source).lower()
 
     for company in selected_companies:
@@ -872,15 +822,8 @@ def source_matches_selected_company(source, selected_companies):
 
     return False
 
-
-# =========================================================
-# AUTO-SCROLL HELPER
-# =========================================================
 def scroll_chat_to_latest():
-    """
-    Smoothly scrolls the conversation to the newest answer while
-    Streamlit keeps the chat input fixed at the bottom of the viewport.
-    """
+
     components.html(
         """
         <script>
@@ -904,40 +847,50 @@ def scroll_chat_to_latest():
         width=0,
     )
 
-
 def scroll_page_to_top():
-    """
-    On the very first load, make sure the page opens at the top (hero header
-    visible). Streamlit focuses the bottom chat input on load, which can leave
-    the page scrolled down, so we reset the scroll a few times while it settles.
-    """
+
     components.html(
         """
         <script>
-        function toTop() {
-            const doc = window.parent.document;
-            const targets = [
-                doc.querySelector('[data-testid="stMain"]'),
-                doc.querySelector('section.main'),
-                doc.querySelector('[data-testid="stAppViewContainer"]'),
-                doc.scrollingElement,
-                doc.documentElement,
-                doc.body,
-            ];
-            targets.forEach(function (el) { if (el) { el.scrollTop = 0; } });
-            window.parent.scrollTo(0, 0);
-        }
-        [0, 150, 500, 1200].forEach(function (t) { setTimeout(toTop, t); });
+        (function () {
+            const w = window.parent;
+            if (w.__tkTopDone) { return; }
+            w.__tkTopDone = true;
+
+            const doc = w.document;
+            let cancelled = false;
+
+            function toTop() {
+                const targets = [
+                    doc.querySelector('[data-testid="stMain"]'),
+                    doc.querySelector('section.main'),
+                    doc.querySelector('[data-testid="stAppViewContainer"]'),
+                    doc.scrollingElement,
+                    doc.documentElement,
+                    doc.body,
+                ];
+                targets.forEach(function (el) { if (el) { el.scrollTop = 0; } });
+                w.scrollTo(0, 0);
+            }
+
+            // stop as soon as the visitor scrolls, taps, clicks or types
+            ['wheel', 'touchstart', 'mousedown', 'keydown'].forEach(function (evt) {
+                doc.addEventListener(evt, function () { cancelled = true; },
+                                     { once: true, passive: true });
+            });
+
+            let ticks = 0;
+            const timer = w.setInterval(function () {
+                if (cancelled || ticks++ > 40) { w.clearInterval(timer); return; }
+                toTop();
+            }, 100);
+        })();
         </script>
         """,
         height=0,
         width=0,
     )
 
-
-# =========================================================
-# RAG FUNCTIONS
-# =========================================================
 USER_AVATAR_SVG = """
 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
 <circle cx="12" cy="8" r="4"/>
@@ -954,21 +907,14 @@ ASSISTANT_AVATAR_SVG = """
 </svg>
 """
 
-# bot.png when available; the SVG above is the fallback.
 ASSISTANT_AVATAR = icon_img("brand", fallback=ASSISTANT_AVATAR_SVG)
 
-
 def current_time_label():
-    """Returns a clock label like '10:24 AM' without a leading zero."""
+
     return datetime.now().strftime("%I:%M %p").lstrip("0")
 
-
 def markdown_lite_to_html(text):
-    """
-    Converts a small, safe subset of Markdown (bold text and bullet
-    lists) coming back from the LLM into HTML so it can be embedded
-    directly inside a custom chat bubble.
-    """
+
     escaped = html.escape(text or "")
     escaped = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", escaped)
 
@@ -997,7 +943,6 @@ def markdown_lite_to_html(text):
 
     return "".join(html_parts)
 
-
 def sources_html(sources):
     if not sources:
         return ""
@@ -1009,13 +954,8 @@ def sources_html(sources):
 
     return f'<div class="source-wrap">{tags}</div>'
 
-
 def render_chat_row(role, content, sources=None, timestamp=None, anchor_id=None):
-    """
-    Renders one chat turn as a custom row: a small square avatar on the
-    left, and a bubble on the right containing the message, any source
-    citations, and a timestamp aligned to the bottom-right.
-    """
+
     is_user = role == "user"
     avatar_class = "user" if is_user else "assistant"
     avatar_svg = USER_AVATAR_SVG if is_user else ASSISTANT_AVATAR
@@ -1039,9 +979,6 @@ def render_chat_row(role, content, sources=None, timestamp=None, anchor_id=None)
         unsafe_allow_html=True,
     )
 
-
-# Exact `source` metadata values written by 01_build_rag.py (PDF file name
-# without the extension, e.g. data/amazon_10k.pdf -> "amazon_10k").
 COMPANY_SOURCES = {
     "Amazon": "amazon_10k",
     "NVIDIA": "nvidia_10k",
@@ -1049,17 +986,8 @@ COMPANY_SOURCES = {
     "JPMorgan": "jpmorgan_10k",
 }
 
-
 def retrieve(query, selected_companies, top_k=8):
-    """
-    Retrieves the most relevant chunks from each selected company's filing.
 
-    Each company is queried separately, with Chroma filtering by `source`,
-    so only a handful of chunks are ever loaded (not the whole database).
-    Results are interleaved so every selected company gets fair space in
-    the context -- with one global top_k, a single company could fill every
-    slot for a question like "which company is strongest?".
-    """
     if not selected_companies:
         return []
 
@@ -1088,7 +1016,6 @@ def retrieve(query, selected_companies, top_k=8):
                 results.append(matches[i])
 
     return results
-
 
 def answer_question(query, selected_companies, top_k=8):
     retrieved = retrieve(
@@ -1148,10 +1075,6 @@ Question:
 
     return response.text, sources
 
-
-# =========================================================
-# SIDEBAR
-# =========================================================
 with st.sidebar:
     st.markdown(
         f"""
@@ -1239,10 +1162,6 @@ with st.sidebar:
         unsafe_allow_html=True,
     )
 
-
-# =========================================================
-# KNOWLEDGE BASE CHECK
-# =========================================================
 if collection.count() == 0:
     st.warning(
         "No documents are loaded yet. Run your indexing script first "
@@ -1250,10 +1169,6 @@ if collection.count() == 0:
     )
     st.stop()
 
-
-# =========================================================
-# MAIN UI
-# =========================================================
 st.markdown(
     """
     <div class="topbar">
@@ -1281,10 +1196,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-
-# =========================================================
-# FEATURE CARDS
-# =========================================================
 feature_data = [
     ("📈", "Financial Performance", "Analyze revenue, profit margins, and growth trends."),
     ("🛡️", "Risk Analysis", "Identify key risks and challenges mentioned in filings."),
@@ -1307,10 +1218,6 @@ for col, (icon, title, description) in zip(feature_cols, feature_data):
             unsafe_allow_html=True,
         )
 
-
-# =========================================================
-# SUGGESTED QUESTIONS
-# =========================================================
 if not st.session_state.messages:
     st.markdown(
         """
@@ -1344,10 +1251,6 @@ if not st.session_state.messages:
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-
-# =========================================================
-# CHAT AREA
-# =========================================================
 st.markdown(
     f"""
     <div class="chat-header">
@@ -1356,7 +1259,6 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
-
 
 if not st.session_state.messages:
     st.markdown(
@@ -1373,8 +1275,6 @@ if not st.session_state.messages:
         unsafe_allow_html=True,
     )
 
-
-# Display chat history
 for msg in st.session_state.messages:
     render_chat_row(
         role=msg["role"],
@@ -1383,26 +1283,15 @@ for msg in st.session_state.messages:
         timestamp=msg.get("time"),
     )
 
-
-# =========================================================
-# FIXED BOTTOM CHAT INPUT
-# =========================================================
-# Native st.chat_input stays fixed at the bottom of the screen.
-# All user and assistant messages render above it.
 query = st.chat_input(
     "Ask anything about the 10-K filings...",
     key="main_chat_input",
 )
 
-# Suggested questions can also submit a query.
 if st.session_state.pending_query:
     query = st.session_state.pending_query
     st.session_state.pending_query = None
 
-
-# =========================================================
-# PROCESS QUERY SAFELY
-# =========================================================
 if query:
     if st.session_state.question_count >= MAX_QUESTIONS_PER_SESSION:
         st.warning(
@@ -1471,9 +1360,7 @@ if query:
                 scroll_chat_to_latest()
 
             except ResourceExhausted:
-                # Gemini's free tier caps requests per minute (15) and per
-                # day (500). This fires when either is hit -- it's not a
-                # bug, just too many questions in too short a window.
+
                 error_message = (
                     "This assistant is getting a lot of questions right now "
                     "and has hit its free-tier rate limit.\n\n"
@@ -1499,8 +1386,7 @@ if query:
                 )
 
             except Exception as error:
-                # Full details go to the server log (Manage app -> Logs),
-                # not to the visitor.
+
                 print(f"[10-K Intelligence] {type(error).__name__}: {error}", flush=True)
                 error_message = (
                     "Sorry, something went wrong while generating the answer.\n\n"
@@ -1527,10 +1413,5 @@ if query:
 
                 scroll_chat_to_latest()
 
-
-# =========================================================
-# FIRST LOAD: open at the top of the page (once per session)
-# =========================================================
-if "initial_scroll_done" not in st.session_state:
-    st.session_state.initial_scroll_done = True
+if not st.session_state.messages:
     scroll_page_to_top()
