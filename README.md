@@ -1,11 +1,9 @@
 # 10-K Intelligence — RAG assistant for SEC filings
 
-https://10k-intelligence.streamlit.app/
-
 Ask questions about the annual reports (10-Ks) of **Amazon, NVIDIA, Starbucks and JPMorgan** and get
 answers grounded in the filings, with source citations.
 
-**Live demo:** _paste your Streamlit link here_
+**Live demo: https://10k-intelligence.streamlit.app/
 
 ## How it works
 PDF ingestion → fixed-size chunking → local `all-MiniLM-L6-v2` embeddings → ChromaDB →
