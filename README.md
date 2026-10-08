@@ -1,5 +1,7 @@
 # 10-K Intelligence — RAG assistant for SEC filings
 
+https://10k-intelligence.streamlit.app/
+
 Ask questions about the annual reports (10-Ks) of **Amazon, NVIDIA, Starbucks and JPMorgan** and get
 answers grounded in the filings, with source citations.
 
@@ -18,7 +20,6 @@ per-company semantic retrieval → Gemini answer grounded only in the retrieved 
 ```bash
 pip install -r requirements.txt
 cp .streamlit/secrets.toml.example .streamlit/secrets.toml
-https://10k-intelligence.streamlit.app/
 streamlit run app.py
 ```
 
