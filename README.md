@@ -3,7 +3,7 @@
 Ask questions about the annual reports (10-Ks) of **Amazon, NVIDIA, Starbucks and JPMorgan** and get
 answers grounded in the filings, with source citations.
 
-**Live demo: https://10k-intelligence.streamlit.app/
+Live demo: https://10k-intelligence.streamlit.app/
 
 ## How it works
 PDF ingestion → fixed-size chunking → local `all-MiniLM-L6-v2` embeddings → ChromaDB →
